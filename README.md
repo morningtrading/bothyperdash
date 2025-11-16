@@ -1,139 +1,275 @@
-# HyperDash Top Traders Scraper
+# Hyperliquid Trader Analysis Suite
 
-A Python web scraper that extracts trader wallet addresses from [HyperDash.info Top Traders](https://hyperdash.info/top-traders) page.
+A comprehensive Python toolkit for scraping, analyzing, and tracking top Hyperliquid traders across multiple data sources.
 
 ## Overview
 
-This scraper uses Selenium with Chrome WebDriver to automatically navigate through the HyperDash top traders page and extract all trader Ethereum wallet addresses. The script handles JavaScript-rendered content and pagination automatically.
+This suite combines multi-source web scraping with portfolio analysis to identify and track the best-performing traders on Hyperliquid. It features an interactive menu system for easy operation and automatic result syncing to Dropbox.
 
 ## Features
 
+### Multi-Source Scraping
+- **Hyperdash.info** - Top traders leaderboard
+- **Coinglass.com** - Range-based trader rankings
+- **Manual Input** - Add specific wallet addresses
 - Automated browser-based scraping using Selenium
-- Handles JavaScript-rendered content
-- Automatic pagination detection and navigation
-- Extracts Ethereum wallet addresses (0x...)
-- Removes duplicate addresses
-- Exports results in both TXT and CSV formats
-- Headless mode (runs without visible browser)
+- Handles JavaScript-rendered content and anti-bot detection
+- Automatic pagination with configurable page limits
+- Auto-deduplication across all sources
+
+### Portfolio Analysis
+- Sharpe ratio calculation
+- Maximum drawdown tracking
+- Win rate and cumulative PnL metrics
+- Exposure percentage (margin used / account value)
+- Current position tracking with unrealized PnL
+- Configurable filtering thresholds
+- Async API calls with rate limiting
+
+### Interactive Menu System
+- Color-coded TUI for easy navigation
+- 7 main operations + configurable settings
+- Full workflow automation (scrape + analyze)
+- Automatic Dropbox sync
+- Real-time result previews
+- Portable configuration (no hard-coded paths)
 
 ## Requirements
 
 - Python 3.6+
 - Chrome browser installed
 - ChromeDriver (automatically managed by Selenium)
-- Dependencies listed in `requirements.txt`
+- Dependencies:
+  - `selenium>=4.15.0` - Web scraping
+  - `aiohttp>=3.9.0` - Async API calls
+  - `aiolimiter>=1.1.0` - Rate limiting
+  - `pandas>=2.0.0` - Data analysis
+  - `numpy>=1.24.0` - Numerical operations
 
-## Installation
+## Quick Start
 
-1. Install the required Python package:
+### Option 1: Use the Interactive Menu (Recommended)
+
 ```bash
+# 1. Install dependencies
 pip3 install -r requirements.txt
+
+# 2. Launch the menu
+./trader_menu.sh
+
+# 3. Choose option 5 (Full workflow)
+# 4. Results automatically saved to ~/Dropbox/_CURRENT/
 ```
 
-Or install manually:
+### Option 2: Use Command-Line Scripts
+
 ```bash
-pip3 install selenium
+# Install dependencies
+pip3 install -r requirements.txt
+
+# Scrape from Hyperdash (20 pages)
+python3 script_scrap_wallet.py -s hyperdash -p 20
+
+# Scrape from Coinglass (10 pages)
+python3 script_scrap_wallet.py -s coinglass -p 10
+
+# Analyze all scraped wallets
+python3 script_portfolio.py --fetch-positions --rate-limit 1.0
 ```
 
-2. Ensure Chrome is installed on your system. Selenium will automatically download and manage ChromeDriver.
+### Option 3: Deploy Packaged Archive
 
-## Usage
-
-Run the scraper:
 ```bash
-python3 scrape_traders.py
-```
+# Extract the archive
+tar -xzf hyperliquid_scraper.tar.gz
 
-The script will:
-1. Launch Chrome in headless mode
-2. Navigate to https://hyperdash.info/top-traders
-3. Extract all trader addresses from available pages
-4. Save results to output files
-5. Display progress and summary
+# Install and run
+cd hyperliquid_scraper
+pip3 install -r requirements.txt
+./trader_menu.sh
+```
 
 ## Output Files
 
-The scraper generates two output files:
+### Local Directory (`./bothyperdash/`)
 
-### `trader_addresses.txt`
-Plain text file with one address per line:
+**`scrapped_wallet_library.csv`**
+- All scraped wallet addresses from all sources
+- Format: `address,source,timestamp`
+- Auto-deduplicated
+
+**`portfolio_analysis.csv`**
+- Complete analysis of all wallets
+- Columns: address, sharpe, max_drawdown, win_rate, cum_pnl_pct, trader_age_days, total_trades
+
+**`portfolio_analysis_filtered.csv`**
+- Top traders only (Sharpe > 1.5, Drawdown < 0.5)
+- Same columns as full analysis
+- Sorted by Sharpe ratio
+
+**`portfolio_analysis_positions.csv`**
+- Current positions for all analyzed traders
+- Columns: address, num_positions, unrealized_pnl, account_value, exposure_pct, total_margin_used
+- Exposure % = (margin used / account value) × 100
+
+### Dropbox Sync (`~/Dropbox/_CURRENT/`)
+
+The menu automatically copies results to Dropbox:
+
+- `freshwallets.rtf` - Formatted results in RTF
+- `freshwallets_filtered.csv` - Copy of top traders
+- `freshwallets_positions.csv` - Copy of positions data
+- `freshwallets_full.csv` - Copy of full analysis
+
+## Architecture
+
+### 1. Wallet Scraper (`script_scrap_wallet.py`)
+- Uses Selenium with anti-bot detection measures
+- Supports multiple sources via `-s` flag
+- Configurable pagination with `-p` flag
+- Saves to unified `scrapped_wallet_library.csv`
+- Auto-deduplication across sources
+
+### 2. Portfolio Analyzer (`script_portfolio.py`)
+- Async API calls to Hyperliquid for performance data
+- Rate-limited requests (configurable with `--rate-limit`)
+- Calculates trader performance metrics
+- Optional position fetching with `--fetch-positions`
+- Filters top performers automatically
+
+### 3. Interactive Menu (`trader_menu.sh`)
+- Bash-based TUI with color output
+- Combines scraping + analysis workflows
+- Configurable settings (pages, thresholds, rate limits)
+- Auto-sync to Dropbox
+- Real-time result previews
+
+## Configuration
+
+### Menu Settings (Option 6)
+- **Pages to scrape**: Default 10
+- **Min Sharpe ratio**: Default 1.5
+- **Max Drawdown**: Default 0.5 (50%)
+- **API Rate limit**: Default 1.0s
+- **Output directory**: Default `~/Dropbox/_CURRENT`
+
+### Command-Line Arguments
+
+**script_scrap_wallet.py**
+```bash
+-s, --source     Source: hyperdash or coinglass (required)
+-p, --pages      Number of pages to scrape (default: 10)
+-o, --output     Output CSV file (default: scrapped_wallet_library.csv)
 ```
-0x2ea18c23f72a4b6172c55b411823cdc5335923f4
-0xb83de012dba672c76a7dbbbf3e459cb59d7d6e36
-0xb317d2bc2d3d2df5fa441b5bae0ab9d8b07283ae
-...
+
+**script_portfolio.py**
+```bash
+--fetch-positions   Fetch current positions (slower but more data)
+--rate-limit       Seconds between API calls (default: 0.5)
+--limit            Limit number of wallets to analyze
 ```
-
-### `trader_addresses.csv`
-CSV file with ranking and addresses:
-```csv
-rank,address
-1,0x2ea18c23f72a4b6172c55b411823cdc5335923f4
-2,0xb83de012dba672c76a7dbbbf3e459cb59d7d6e36
-3,0xb317d2bc2d3d2df5fa441b5bae0ab9d8b07283ae
-...
-```
-
-## How It Works
-
-1. **Browser Setup**: Initializes Chrome with headless mode and anti-detection settings
-2. **Page Loading**: Navigates to the target URL and waits for content to load
-3. **Address Extraction**: Uses regex pattern `0x[a-fA-F0-9]{40}` to find Ethereum addresses
-4. **Pagination**: Attempts multiple strategies to find and navigate to next pages:
-   - URL parameters (page, p, offset)
-   - Next button clicking
-   - Direct URL manipulation
-5. **Deduplication**: Removes duplicate addresses while preserving order
-6. **Output**: Saves unique addresses to both TXT and CSV formats
-
-## Script Configuration
-
-You can modify these parameters in `scrape_traders.py`:
-
-- `max_pages`: Maximum number of pages to scrape (default: 100)
-- `time.sleep()` values: Adjust wait times between page loads
-- User agent string: Change browser fingerprint if needed
 
 ## Troubleshooting
 
-### Chrome/ChromeDriver Issues
-If you encounter ChromeDriver errors:
+### "No wallet library found"
+Run option 1 or 2 in the menu to scrape wallets first, or use:
 ```bash
-# Update Selenium to latest version
+python3 script_scrap_wallet.py -s hyperdash -p 10
+```
+
+### HTTP 429 Rate Limit Errors
+Increase the rate limit in settings (menu option 6) or use:
+```bash
+python3 script_portfolio.py --rate-limit 2.0
+```
+
+### Zero Exposure Values
+This is normal for traders without open positions. The exposure_pct only shows values when traders have active margin positions.
+
+### Chrome/ChromeDriver Issues
+Update Selenium to the latest version:
+```bash
 pip3 install --upgrade selenium
 ```
 
-### No Addresses Found
-If the scraper returns no addresses:
-- Check if the website structure has changed
-- Increase sleep/wait times in the script
-- Run in non-headless mode for debugging (comment out `--headless` option)
+### Scraper Returns No Addresses
+- Check if website structure changed
+- Disable headless mode for debugging
+- Verify internet connection
+- Check for 403/bot detection errors
 
-### 403 Forbidden Errors
-The script uses browser automation specifically to avoid 403 errors from direct HTTP requests. If you still encounter issues:
-- Check your internet connection
-- Verify the website is accessible in a regular browser
-- Try changing the user agent string
+### Menu Not Executable
+Make the script executable:
+```bash
+chmod +x trader_menu.sh
+```
 
-## Technical Details
+## Performance Tips
 
-- **Language**: Python 3
-- **Framework**: Selenium WebDriver
-- **Browser**: Chrome (headless)
-- **Target Pattern**: Ethereum addresses (`0x` + 40 hex characters)
-- **Output Encoding**: UTF-8
+- Start with 5-10 pages for testing
+- Use `--limit` to analyze smaller batches
+- Increase `--rate-limit` if hitting API limits
+- Run full workflow overnight for large scrapes
+- Combine both sources for comprehensive coverage
 
-## Results
+## Example Workflow
 
-Latest scrape results (as of last run):
-- **Total addresses found**: 50
-- **Pages scraped**: Multiple pages with automatic pagination
-- **Success rate**: 100%
+```bash
+# 1. Scrape from both sources
+python3 script_scrap_wallet.py -s hyperdash -p 30
+python3 script_scrap_wallet.py -s coinglass -p 15
+
+# 2. Analyze with position tracking
+python3 script_portfolio.py --fetch-positions --rate-limit 1.0
+
+# 3. View filtered results
+cat portfolio_analysis_filtered.csv | column -t -s,
+
+# 4. Check current positions
+head -20 portfolio_analysis_positions.csv
+```
+
+## Documentation
+
+- **[MENU_GUIDE.md](MENU_GUIDE.md)** - Interactive menu quick start guide
+- **[README_SCRIPTS.md](README_SCRIPTS.md)** - Detailed script documentation
+- **requirements.txt** - Python dependencies
+
+## Sample Results
+
+Based on recent analysis of 150+ wallets:
+- **Top traders identified**: 54 (Sharpe > 1.5)
+- **Highest Sharpe ratio**: 34.7
+- **Average exposure**: 15-40% of account value
+- **Sources combined**: Hyperdash + Coinglass
+
+## Project Structure
+
+```
+bothyperdash/
+├── script_scrap_wallet.py           # Multi-source wallet scraper
+├── script_portfolio.py               # Portfolio analyzer
+├── trader_menu.sh                    # Interactive menu system
+├── requirements.txt                  # Dependencies
+├── README.md                         # This file
+├── README_SCRIPTS.md                 # Detailed documentation
+├── MENU_GUIDE.md                     # Menu usage guide
+├── hyperliquid_scraper.tar.gz       # Packaged archive
+├── scrapped_wallet_library.csv      # Scraped addresses (generated)
+├── portfolio_analysis.csv            # Full analysis (generated)
+├── portfolio_analysis_filtered.csv   # Top traders (generated)
+└── portfolio_analysis_positions.csv  # Current positions (generated)
+```
 
 ## License
 
-This scraper is provided as-is for educational and research purposes.
+This project is provided as-is for educational and research purposes.
 
 ## Disclaimer
 
-Please ensure you comply with HyperDash.info's terms of service and robots.txt when using this scraper. Respect rate limits and do not overload their servers with requests.
+Please comply with the terms of service for all data sources:
+- HyperDash.info
+- Coinglass.com
+- Hyperliquid API
+
+Respect rate limits and do not overload servers with requests. This tool is intended for personal research and analysis only.
