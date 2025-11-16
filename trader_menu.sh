@@ -52,11 +52,12 @@ show_main_menu() {
     echo ""
     echo "1) Scrape wallets from Hyperdash"
     echo "2) Scrape wallets from Coinglass"
-    echo "3) Manual wallet input"
-    echo "4) Analyze existing wallet library"
-    echo "5) Full workflow (Scrape + Analyze)"
-    echo "6) Settings"
-    echo "7) View results"
+    echo "3) Scrape wallets from CoinMarketMan"
+    echo "4) Manual wallet input"
+    echo "5) Analyze existing wallet library"
+    echo "6) Full workflow (Scrape + Analyze)"
+    echo "7) Settings"
+    echo "8) View results"
     echo "0) Exit"
     echo ""
     echo -e "${CYAN}Current Settings:${NC}"
@@ -100,6 +101,25 @@ scrape_coinglass() {
     echo ""
     print_info "Scraping ${pages} pages from Coinglass..."
     python3 script_scrap_wallet.py -s coinglass -p ${pages}
+
+    if [ $? -eq 0 ]; then
+        print_success "Scraping completed successfully!"
+    else
+        print_error "Scraping failed!"
+        return 1
+    fi
+
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
+# Scrape from CoinMarketMan
+scrape_coinmarketman() {
+    print_header "SCRAPE FROM COINMARKETMAN"
+    echo ""
+    print_info "Scraping Money Printer segment (+\$1M PNL traders)..."
+    echo ""
+    python3 script_scrap_wallet.py -s cmm
 
     if [ $? -eq 0 ]; then
         print_success "Scraping completed successfully!"
@@ -264,7 +284,8 @@ full_workflow() {
     echo "Select source:"
     echo "1) Hyperdash"
     echo "2) Coinglass"
-    echo "3) Both"
+    echo "3) CoinMarketMan (Money Printer)"
+    echo "4) All sources"
     echo ""
     read -p "Choice [1]: " source_choice
     source_choice=${source_choice:-1}
@@ -277,14 +298,19 @@ full_workflow() {
     echo ""
 
     # Scrape
-    if [ "$source_choice" == "1" ] || [ "$source_choice" == "3" ]; then
+    if [ "$source_choice" == "1" ] || [ "$source_choice" == "4" ]; then
         print_info "Scraping from Hyperdash..."
         python3 script_scrap_wallet.py -s hyperdash -p ${pages}
     fi
 
-    if [ "$source_choice" == "2" ] || [ "$source_choice" == "3" ]; then
+    if [ "$source_choice" == "2" ] || [ "$source_choice" == "4" ]; then
         print_info "Scraping from Coinglass..."
         python3 script_scrap_wallet.py -s coinglass -p ${pages}
+    fi
+
+    if [ "$source_choice" == "3" ] || [ "$source_choice" == "4" ]; then
+        print_info "Scraping from CoinMarketMan..."
+        python3 script_scrap_wallet.py -s cmm
     fi
 
     echo ""
@@ -399,18 +425,21 @@ main() {
                 scrape_coinglass
                 ;;
             3)
-                manual_input
+                scrape_coinmarketman
                 ;;
             4)
-                analyze_wallets
+                manual_input
                 ;;
             5)
-                full_workflow
+                analyze_wallets
                 ;;
             6)
-                settings_menu
+                full_workflow
                 ;;
             7)
+                settings_menu
+                ;;
+            8)
                 view_results
                 ;;
             0)

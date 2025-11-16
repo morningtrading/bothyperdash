@@ -11,6 +11,7 @@ This suite combines multi-source web scraping with portfolio analysis to identif
 ### Multi-Source Scraping
 - **Hyperdash.info** - Top traders leaderboard
 - **Coinglass.com** - Range-based trader rankings
+- **CoinMarketMan.com** - Hypertracker Money Printer segment (+$1M PNL traders)
 - **Manual Input** - Add specific wallet addresses
 - Automated browser-based scraping using Selenium
 - Handles JavaScript-rendered content and anti-bot detection
@@ -72,6 +73,9 @@ python3 script_scrap_wallet.py -s hyperdash -p 20
 
 # Scrape from Coinglass (10 pages)
 python3 script_scrap_wallet.py -s coinglass -p 10
+
+# Scrape from CoinMarketMan Money Printer (+$1M PNL)
+python3 script_scrap_wallet.py -s cmm
 
 # Analyze all scraped wallets
 python3 script_portfolio.py --fetch-positions --rate-limit 1.0
@@ -215,9 +219,10 @@ chmod +x trader_menu.sh
 ## Example Workflow
 
 ```bash
-# 1. Scrape from both sources
+# 1. Scrape from all sources
 python3 script_scrap_wallet.py -s hyperdash -p 30
 python3 script_scrap_wallet.py -s coinglass -p 15
+python3 script_scrap_wallet.py -s cmm
 
 # 2. Analyze with position tracking
 python3 script_portfolio.py --fetch-positions --rate-limit 1.0
@@ -241,7 +246,7 @@ Based on recent analysis of 150+ wallets:
 - **Top traders identified**: 54 (Sharpe > 1.5)
 - **Highest Sharpe ratio**: 34.7
 - **Average exposure**: 15-40% of account value
-- **Sources combined**: Hyperdash + Coinglass
+- **Sources combined**: Hyperdash + Coinglass + CoinMarketMan
 
 ## Project Structure
 
@@ -270,6 +275,7 @@ This project is provided as-is for educational and research purposes.
 Please comply with the terms of service for all data sources:
 - HyperDash.info
 - Coinglass.com
+- CoinMarketMan.com
 - Hyperliquid API
 
 Respect rate limits and do not overload servers with requests. This tool is intended for personal research and analysis only.

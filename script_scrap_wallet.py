@@ -197,6 +197,77 @@ def scrape_coinglass(driver, max_pages=10, min_margin_k=True):
     return addresses
 
 
+def scrape_coinmarketman(driver, segment="money-printer"):
+    """Scrape addresses from CoinMarketMan Hypertracker
+
+    Available segments:
+    - money-printer (+$1M PNL)
+    - smart-money
+    - grinder
+    - humble-earner
+    - exit-liquidity
+    - semi-rekt
+    - full-rekt
+    - giga-rekt
+    """
+    url = f"https://app.coinmarketman.com/hypertracker/segments/{segment}"
+    print(f"Scraping from CoinMarketMan: {url}")
+
+    driver.get(url)
+    print("  Waiting for page to load...")
+    time.sleep(10)  # Initial load time for React app
+
+    addresses = []
+    last_count = 0
+    no_change_count = 0
+
+    print("  Scrolling to load all rows...")
+
+    # Scroll multiple times to trigger virtualized content loading
+    for scroll_attempt in range(50):
+        # First try to scroll within the DataGrid virtualScroller
+        try:
+            data_grid = driver.find_element(By.CLASS_NAME, "MuiDataGrid-virtualScroller")
+            # Scroll down within the grid
+            driver.execute_script("arguments[0].scrollBy(0, 500)", data_grid)
+            time.sleep(0.5)
+        except:
+            # If no virtual scroller, scroll the whole page
+            driver.execute_script("window.scrollBy(0, 500);")
+            time.sleep(0.5)
+
+        # Every few scrolls, extract and check for new addresses
+        if scroll_attempt % 5 == 4:
+            # Extract addresses
+            page_source = driver.page_source
+            eth_address_pattern = r'0x[a-fA-F0-9]{40}'
+            found_addresses = re.findall(eth_address_pattern, page_source)
+
+            # Remove duplicates while preserving order
+            unique_addresses = []
+            seen = set()
+            for addr in found_addresses:
+                if addr.lower() not in seen:
+                    unique_addresses.append(addr)
+                    seen.add(addr.lower())
+
+            current_count = len(unique_addresses)
+
+            if current_count > last_count:
+                print(f"    Scroll batch {(scroll_attempt + 1) // 5}: Found {current_count} unique addresses")
+                last_count = current_count
+                no_change_count = 0
+                addresses = unique_addresses
+            else:
+                no_change_count += 1
+                if no_change_count >= 4:
+                    print(f"    No new addresses after {no_change_count} check intervals. Stopping.")
+                    break
+
+    print(f"  Total unique addresses found: {len(addresses)}")
+    return addresses
+
+
 def save_to_csv(addresses, source, output_file="scrapped_wallet_library.csv"):
     """Save or append addresses to CSV file"""
     file_exists = Path(output_file).exists()
@@ -261,12 +332,17 @@ Examples:
   # Scrape 20 pages from Coinglass
   python3 script_scrap_wallet.py --source coinglass --pages 20
 
-  # Scrape from both sources
+  # Scrape from CoinMarketMan money-printer segment
+  python3 script_scrap_wallet.py --source coinmarketman
+
+  # Scrape from all sources
   python3 script_scrap_wallet.py --source hyperdash --pages 5
   python3 script_scrap_wallet.py --source coinglass --pages 5
+  python3 script_scrap_wallet.py --source cmm
 
   # Use short form
   python3 script_scrap_wallet.py -s hyperdash -p 10
+  python3 script_scrap_wallet.py -s cmm
         """
     )
 
@@ -274,8 +350,8 @@ Examples:
         '--source', '-s',
         type=str,
         required=True,
-        choices=['hyperdash', 'coinglass'],
-        help='Source to scrape from: hyperdash or coinglass'
+        choices=['hyperdash', 'coinglass', 'coinmarketman', 'cmm'],
+        help='Source to scrape from: hyperdash, coinglass, or coinmarketman (cmm)'
     )
 
     parser.add_argument(
@@ -323,10 +399,15 @@ Examples:
         driver = setup_driver(headless=args.headless)
 
         # Scrape based on source
+        source_name = args.source
         if args.source == 'hyperdash':
             addresses = scrape_hyperdash(driver, max_pages=args.pages)
         elif args.source == 'coinglass':
             addresses = scrape_coinglass(driver, max_pages=args.pages)
+        elif args.source in ['coinmarketman', 'cmm']:
+            # CoinMarketMan doesn't use pagination, just one segment
+            addresses = scrape_coinmarketman(driver, segment="money-printer")
+            source_name = 'coinmarketman'
         else:
             print(f"Unknown source: {args.source}")
             return
@@ -335,7 +416,7 @@ Examples:
 
         # Save to CSV
         if addresses:
-            save_to_csv(addresses, args.source, args.output)
+            save_to_csv(addresses, source_name, args.output)
         else:
             print("No addresses found!")
 
