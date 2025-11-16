@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Unified wallet scraper for multiple sources
-Supports: Hyperdash, Coinglass, and potentially other sources
+Supports: Hyperdash, Coinglass, CoinMarketMan (with auth)
 Output: scrapped_wallet_library.csv
 """
 import time
 import re
 import argparse
 import csv
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -52,6 +53,91 @@ def setup_driver(headless=True):
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
     return driver
+
+
+def login_coinmarketman(driver, email, password):
+    """Login to CoinMarketMan to access full data"""
+    print("  Attempting to login to CoinMarketMan...")
+
+    try:
+        # Look for sign-in button or link
+        wait = WebDriverWait(driver, 10)
+
+        # Try different selectors for sign-in button
+        sign_in_selectors = [
+            "//button[contains(text(), 'Sign')]",
+            "//a[contains(text(), 'Sign')]",
+            "//button[contains(text(), 'Log')]",
+            "//a[contains(text(), 'Log')]",
+            "//*[@id='sign-in']",
+            "//*[contains(@class, 'signin')]",
+            "//*[contains(@class, 'login')]"
+        ]
+
+        sign_in_button = None
+        for selector in sign_in_selectors:
+            try:
+                sign_in_button = wait.until(EC.element_to_be_clickable((By.XPATH, selector)))
+                print(f"    Found sign-in button with selector: {selector}")
+                break
+            except:
+                continue
+
+        if sign_in_button:
+            sign_in_button.click()
+            time.sleep(2)
+            print("    Clicked sign-in button")
+
+        # Wait for email input field
+        email_input = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//input[@type='email' or @name='email' or contains(@placeholder, 'mail')]"
+        )))
+        print("    Found email input")
+
+        # Enter email
+        email_input.clear()
+        email_input.send_keys(email)
+        time.sleep(0.5)
+
+        # Find password input
+        password_input = driver.find_element(By.XPATH,
+            "//input[@type='password' or @name='password' or contains(@placeholder, 'assword')]"
+        )
+        print("    Found password input")
+
+        # Enter password
+        password_input.clear()
+        password_input.send_keys(password)
+        time.sleep(0.5)
+
+        # Find and click submit button
+        submit_selectors = [
+            "//button[@type='submit']",
+            "//button[contains(text(), 'Sign')]",
+            "//button[contains(text(), 'Log')]",
+            "//button[contains(text(), 'Continue')]"
+        ]
+
+        for selector in submit_selectors:
+            try:
+                submit_button = driver.find_element(By.XPATH, selector)
+                submit_button.click()
+                print("    Clicked submit button")
+                break
+            except:
+                continue
+
+        # Wait for login to complete (check for successful navigation or element change)
+        time.sleep(5)
+        print("    Login attempt complete, waiting for page to update...")
+        time.sleep(5)
+
+        return True
+
+    except Exception as e:
+        print(f"    Login error: {e}")
+        print("    Continuing without login (will only get first 50 results)")
+        return False
 
 
 def scrape_hyperdash(driver, max_pages=10):
@@ -197,7 +283,7 @@ def scrape_coinglass(driver, max_pages=10, min_margin_k=True):
     return addresses
 
 
-def scrape_coinmarketman(driver, segment="money-printer"):
+def scrape_coinmarketman(driver, segment="money-printer", email=None, password=None):
     """Scrape addresses from CoinMarketMan Hypertracker
 
     Available segments:
@@ -209,13 +295,25 @@ def scrape_coinmarketman(driver, segment="money-printer"):
     - semi-rekt
     - full-rekt
     - giga-rekt
+
+    Note: Without authentication, only first 50 results are available.
+          With login, you can access all results (e.g., 427 for money-printer).
     """
     url = f"https://app.coinmarketman.com/hypertracker/segments/{segment}"
     print(f"Scraping from CoinMarketMan: {url}")
 
     driver.get(url)
     print("  Waiting for page to load...")
-    time.sleep(10)  # Initial load time for React app
+    time.sleep(15)  # Initial load time for React app
+
+    # Attempt login if credentials provided
+    if email and password:
+        login_coinmarketman(driver, email, password)
+        # Give extra time for authenticated content to load
+        time.sleep(5)
+    else:
+        print("  No credentials provided - will only get first 50 public results")
+        print("  Use --cmm-email and --cmm-password to access all data")
 
     addresses = []
     last_count = 0
@@ -223,21 +321,43 @@ def scrape_coinmarketman(driver, segment="money-printer"):
 
     print("  Scrolling to load all rows...")
 
-    # Scroll multiple times to trigger virtualized content loading
-    for scroll_attempt in range(50):
-        # First try to scroll within the DataGrid virtualScroller
-        try:
-            data_grid = driver.find_element(By.CLASS_NAME, "MuiDataGrid-virtualScroller")
-            # Scroll down within the grid
-            driver.execute_script("arguments[0].scrollBy(0, 500)", data_grid)
-            time.sleep(0.5)
-        except:
-            # If no virtual scroller, scroll the whole page
-            driver.execute_script("window.scrollBy(0, 500);")
-            time.sleep(0.5)
+    # Find the virtual scroller element
+    try:
+        data_grid = driver.find_element(By.CLASS_NAME, "MuiDataGrid-virtualScroller")
+        print("    Found DataGrid virtual scroller")
 
-        # Every few scrolls, extract and check for new addresses
-        if scroll_attempt % 5 == 4:
+        # First, scroll to absolute bottom to trigger loading all data
+        print("    Scrolling to bottom to trigger data load...")
+        for _ in range(5):
+            driver.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight)", data_grid)
+            time.sleep(2)
+
+        # Then scroll back to top
+        driver.execute_script("arguments[0].scrollTo(0, 0)", data_grid)
+        time.sleep(2)
+        print("    Initial scan complete, now scrolling through content...")
+    except:
+        data_grid = None
+        print("    Using whole page scrolling")
+
+    # Scroll multiple times to trigger virtualized content loading
+    for scroll_attempt in range(100):
+        # Scroll within the DataGrid or whole page
+        if data_grid:
+            # Small incremental scrolls to ensure all rows render
+            driver.execute_script("arguments[0].scrollBy(0, 200)", data_grid)
+            time.sleep(0.8)  # Longer wait for virtual content to render
+
+            # Every 10 scrolls, jump to bottom to ensure we reach the end
+            if scroll_attempt % 10 == 9:
+                driver.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight)", data_grid)
+                time.sleep(1.5)
+        else:
+            driver.execute_script("window.scrollBy(0, 300);")
+            time.sleep(0.8)
+
+        # Check for new addresses every 3 scrolls
+        if scroll_attempt % 3 == 2:
             # Extract addresses
             page_source = driver.page_source
             eth_address_pattern = r'0x[a-fA-F0-9]{40}'
@@ -254,14 +374,14 @@ def scrape_coinmarketman(driver, segment="money-printer"):
             current_count = len(unique_addresses)
 
             if current_count > last_count:
-                print(f"    Scroll batch {(scroll_attempt + 1) // 5}: Found {current_count} unique addresses")
+                print(f"    Progress: Found {current_count} unique addresses (scroll {scroll_attempt + 1})")
                 last_count = current_count
                 no_change_count = 0
                 addresses = unique_addresses
             else:
                 no_change_count += 1
-                if no_change_count >= 4:
-                    print(f"    No new addresses after {no_change_count} check intervals. Stopping.")
+                if no_change_count >= 6:
+                    print(f"    No new addresses after {no_change_count * 3} scrolls. Stopping.")
                     break
 
     print(f"  Total unique addresses found: {len(addresses)}")
@@ -332,13 +452,21 @@ Examples:
   # Scrape 20 pages from Coinglass
   python3 script_scrap_wallet.py --source coinglass --pages 20
 
-  # Scrape from CoinMarketMan money-printer segment
+  # Scrape from CoinMarketMan money-printer segment (public - 50 results)
   python3 script_scrap_wallet.py --source coinmarketman
+
+  # Scrape from CoinMarketMan with authentication (all results - 400+)
+  python3 script_scrap_wallet.py -s cmm --cmm-email your@email.com --cmm-password yourpass
+
+  # Or use environment variables for credentials
+  export CMM_EMAIL="your@email.com"
+  export CMM_PASSWORD="yourpassword"
+  python3 script_scrap_wallet.py -s cmm
 
   # Scrape from all sources
   python3 script_scrap_wallet.py --source hyperdash --pages 5
   python3 script_scrap_wallet.py --source coinglass --pages 5
-  python3 script_scrap_wallet.py --source cmm
+  python3 script_scrap_wallet.py --source cmm --cmm-email your@email.com --cmm-password yourpass
 
   # Use short form
   python3 script_scrap_wallet.py -s hyperdash -p 10
@@ -382,6 +510,20 @@ Examples:
         help='Show browser window'
     )
 
+    parser.add_argument(
+        '--cmm-email',
+        type=str,
+        default=os.environ.get('CMM_EMAIL'),
+        help='CoinMarketMan email (or set CMM_EMAIL env var)'
+    )
+
+    parser.add_argument(
+        '--cmm-password',
+        type=str,
+        default=os.environ.get('CMM_PASSWORD'),
+        help='CoinMarketMan password (or set CMM_PASSWORD env var)'
+    )
+
     args = parser.parse_args()
 
     print("="*60)
@@ -406,7 +548,12 @@ Examples:
             addresses = scrape_coinglass(driver, max_pages=args.pages)
         elif args.source in ['coinmarketman', 'cmm']:
             # CoinMarketMan doesn't use pagination, just one segment
-            addresses = scrape_coinmarketman(driver, segment="money-printer")
+            addresses = scrape_coinmarketman(
+                driver,
+                segment="money-printer",
+                email=args.cmm_email,
+                password=args.cmm_password
+            )
             source_name = 'coinmarketman'
         else:
             print(f"Unknown source: {args.source}")
