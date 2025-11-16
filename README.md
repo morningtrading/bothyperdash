@@ -74,8 +74,12 @@ python3 script_scrap_wallet.py -s hyperdash -p 20
 # Scrape from Coinglass (10 pages)
 python3 script_scrap_wallet.py -s coinglass -p 10
 
-# Scrape from CoinMarketMan Money Printer (+$1M PNL)
+# Scrape from CoinMarketMan Money Printer (+$1M PNL - 50 public addresses)
 python3 script_scrap_wallet.py -s cmm
+
+# Or manually save pages while logged in for ALL 427+ addresses
+# See CMM_MANUAL_SCRAPING_GUIDE.md for instructions
+python3 parse_cmm_html.py cmm_pages
 
 # Analyze all scraped wallets
 python3 script_portfolio.py --fetch-positions --rate-limit 1.0
@@ -238,6 +242,7 @@ head -20 portfolio_analysis_positions.csv
 
 - **[MENU_GUIDE.md](MENU_GUIDE.md)** - Interactive menu quick start guide
 - **[README_SCRIPTS.md](README_SCRIPTS.md)** - Detailed script documentation
+- **[CMM_MANUAL_SCRAPING_GUIDE.md](CMM_MANUAL_SCRAPING_GUIDE.md)** - CoinMarketMan manual scraping guide
 - **requirements.txt** - Python dependencies
 
 ## Sample Results
