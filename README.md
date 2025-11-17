@@ -77,9 +77,9 @@ python3 script_scrap_wallet.py -s coinglass -p 10
 # Scrape from CoinMarketMan Money Printer (+$1M PNL - 50 public addresses)
 python3 script_scrap_wallet.py -s cmm
 
-# Or manually save pages while logged in for ALL 427+ addresses
+# Or manually save pages while logged in for ALL 427+ addresses with FULL DATA
 # See CMM_MANUAL_SCRAPING_GUIDE.md for instructions
-python3 parse_cmm_html.py cmm_pages
+python3 parse_cmm_detailed.py cmm_pages
 
 # Analyze all scraped wallets
 python3 script_portfolio.py --fetch-positions --rate-limit 1.0
@@ -105,6 +105,11 @@ pip3 install -r requirements.txt
 - All scraped wallet addresses from all sources
 - Format: `address,source,timestamp`
 - Auto-deduplicated
+
+**`cmm_traders_detailed.csv`** (when using manual CMM parsing)
+- Complete trader data from CoinMarketMan
+- Columns: rank, wallet, age, perp_equity, open_value, leverage, current_bias, pnl_24h, pnl_7d, pnl_30d, pnl_all, source_file
+- Includes all performance metrics visible on CoinMarketMan
 
 **`portfolio_analysis.csv`**
 - Complete analysis of all wallets
@@ -257,15 +262,19 @@ Based on recent analysis of 150+ wallets:
 
 ```
 bothyperdash/
-├── script_scrap_wallet.py           # Multi-source wallet scraper
+├── script_scrap_wallet.py            # Multi-source wallet scraper
 ├── script_portfolio.py               # Portfolio analyzer
+├── parse_cmm_detailed.py             # CMM detailed data extractor
+├── parse_cmm_html.py                 # CMM simple address extractor
 ├── trader_menu.sh                    # Interactive menu system
 ├── requirements.txt                  # Dependencies
 ├── README.md                         # This file
 ├── README_SCRIPTS.md                 # Detailed documentation
 ├── MENU_GUIDE.md                     # Menu usage guide
-├── hyperliquid_scraper.tar.gz       # Packaged archive
-├── scrapped_wallet_library.csv      # Scraped addresses (generated)
+├── CMM_MANUAL_SCRAPING_GUIDE.md      # CMM manual scraping guide
+├── hyperliquid_scraper.tar.gz        # Packaged archive
+├── scrapped_wallet_library.csv       # Scraped addresses (generated)
+├── cmm_traders_detailed.csv          # CMM detailed data (generated)
 ├── portfolio_analysis.csv            # Full analysis (generated)
 ├── portfolio_analysis_filtered.csv   # Top traders (generated)
 └── portfolio_analysis_positions.csv  # Current positions (generated)

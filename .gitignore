@@ -1,0 +1,43 @@
+# Debug and test files
+debug_*.html
+debug_*.png
+test_*.py
+test_*.txt
+diagnose_*.py
+*_diagnostic.html
+
+# Large HTML files from manual scraping
+cmm_pages/*.html
+cmm_pages/*_files/
+*.png
+cmm_before_login.html
+cmm_after_login.html
+cmm_after_manual_login.html
+
+# Log files
+*.log
+*_log.txt
+portfolio_analysis_log.txt
+
+# Backup files
+*.backup
+*.bak
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp

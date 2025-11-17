@@ -41,49 +41,52 @@ Once you've saved all pages:
 
 ```bash
 cd /home/titus/bothyperdash
-python3 parse_cmm_html.py cmm_pages
+python3 parse_cmm_detailed.py cmm_pages
 ```
 
 **The script will:**
 - ✅ Read all HTML files in `cmm_pages/` folder
-- ✅ Extract all wallet addresses
+- ✅ Extract all trader data (Rank, Wallet, Age, Perp Equity, Open Value, Leverage, Current Bias, 24h/7d/30d/All PNL)
 - ✅ Remove duplicates automatically
-- ✅ Add them to `scrapped_wallet_library.csv`
-- ✅ Show you how many new addresses were found
+- ✅ Save detailed data to `cmm_traders_detailed.csv`
+- ✅ Add wallet addresses to `scrapped_wallet_library.csv`
+- ✅ Show you how many new traders were found
 
 ### 4. Example Output
 
 ```
 ============================================================
-CoinMarketMan HTML Parser
+CoinMarketMan Detailed Data Parser
 Folder: cmm_pages
 ============================================================
 Found 9 HTML file(s) in 'cmm_pages'
 
 Processing: page_1.html
-  Found 50 addresses (50 new, 0 duplicates)
+    Found 50 table rows
+    Extracted 50 trader records
 
 Processing: page_2.html
-  Found 50 addresses (50 new, 0 duplicates)
+    Found 50 table rows
+    Extracted 50 trader records
 
 Processing: page_3.html
-  Found 50 addresses (48 new, 2 duplicates)
+    Found 50 table rows
+    Extracted 48 trader records
 
 ... [more pages] ...
 
 Processing: page_9.html
-  Found 27 addresses (27 new, 0 duplicates)
+    Found 27 table rows
+    Extracted 27 trader records
 
 ============================================================
-Total unique addresses found: 427
+Detailed results saved to: cmm_traders_detailed.csv
+  Total traders: 427
+  Duplicates removed: 0
 ============================================================
 
-============================================================
-Results saved to: scrapped_wallet_library.csv
+Also updated scrapped_wallet_library.csv:
   New addresses added: 427
-  Duplicates skipped: 0
-  Total in file: 949
-============================================================
 ```
 
 ## Alternative: Use Different Folder
@@ -95,7 +98,7 @@ If you want to organize by segment or date:
 mkdir -p ~/cmm_money_printer_2025_01
 
 # Save pages there, then run:
-python3 parse_cmm_html.py ~/cmm_money_printer_2025_01
+python3 parse_cmm_detailed.py ~/cmm_money_printer_2025_01
 ```
 
 ## Other Segments
@@ -127,13 +130,16 @@ The addresses are already in your `scrapped_wallet_library.csv` file!
 ```bash
 # 1. Save pages manually to cmm_pages/ folder while logged in
 
-# 2. Parse all saved HTML files
-python3 parse_cmm_html.py cmm_pages
+# 2. Parse all saved HTML files (extracts all trader data)
+python3 parse_cmm_detailed.py cmm_pages
 
-# 3. (Optional) Clean up HTML files
+# 3. View results
+head -10 cmm_traders_detailed.csv
+
+# 4. (Optional) Clean up HTML files
 rm cmm_pages/*.html
 
-# 4. Run analysis as usual
+# 5. Run analysis as usual
 python3 script_portfolio.py --fetch-positions --rate-limit 1.0
 ```
 
