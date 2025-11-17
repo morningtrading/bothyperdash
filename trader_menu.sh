@@ -56,8 +56,9 @@ show_main_menu() {
     echo "4) Manual wallet input"
     echo "5) Analyze existing wallet library"
     echo "6) Full workflow (Scrape + Analyze)"
-    echo "7) Settings"
-    echo "8) View results"
+    echo "7) 🆕 Unified Multi-Source Scraper (All-in-One)"
+    echo "8) Settings"
+    echo "9) View results"
     echo "0) Exit"
     echo ""
     echo -e "${CYAN}Current Settings:${NC}"
@@ -328,6 +329,66 @@ full_workflow() {
     read -p "Press Enter to continue..."
 }
 
+# Unified Multi-Source Scraper
+unified_scraper() {
+    print_header "UNIFIED MULTI-SOURCE SCRAPER"
+    echo ""
+    print_info "This will scrape all 3 sources, merge results, and rank by performance"
+    echo ""
+    echo "Options:"
+    echo "1) Scrape all sources + Analyze (creates big_file.csv)"
+    echo "2) Analyze existing scrapped_wallet_library.csv"
+    echo ""
+    read -p "Choice [1]: " mode_choice
+    mode_choice=${mode_choice:-1}
+
+    read -p "Number of pages per source [${PAGES}]: " input_pages
+    pages=${input_pages:-$PAGES}
+
+    echo ""
+    
+    if [ "$mode_choice" == "1" ]; then
+        print_info "Starting unified scraper (scrape + analyze)..."
+        python3 unified_scraper.py --scrape --analyze \
+            --hyperdash-pages ${pages} \
+            --coinglass-pages ${pages} \
+            --include-cmm \
+            --rate-limit ${RATE_LIMIT} \
+            --min-sharpe ${MIN_SHARPE} \
+            --max-drawdown ${MAX_DRAWDOWN} \
+            --exclude-hyper-scrapers
+    else
+        print_info "Analyzing existing wallet library..."
+        python3 unified_scraper.py --analyze \
+            --rate-limit ${RATE_LIMIT} \
+            --min-sharpe ${MIN_SHARPE} \
+            --max-drawdown ${MAX_DRAWDOWN} \
+            --exclude-hyper-scrapers
+    fi
+
+    if [ $? -eq 0 ]; then
+        print_success "Unified scraper completed successfully!"
+        echo ""
+        print_info "Output files created:"
+        echo "  - big_file.csv (all wallets with full data)"
+        echo "  - big_file_ranked.csv (top performers ranked)"
+        echo ""
+        
+        # Copy to Dropbox if directory exists
+        if [ -d "${OUTPUT_DIR}" ]; then
+            print_info "Copying results to ${OUTPUT_DIR}..."
+            cp big_file.csv "${OUTPUT_DIR}/big_file.csv" 2>/dev/null
+            cp big_file_ranked.csv "${OUTPUT_DIR}/big_file_ranked.csv" 2>/dev/null
+            print_success "Results copied to output directory"
+        fi
+    else
+        print_error "Unified scraper failed!"
+    fi
+
+    echo ""
+    read -p "Press Enter to continue..."
+}
+
 # Settings menu
 settings_menu() {
     while true; do
@@ -437,9 +498,12 @@ main() {
                 full_workflow
                 ;;
             7)
-                settings_menu
+                unified_scraper
                 ;;
             8)
+                settings_menu
+                ;;
+            9)
                 view_results
                 ;;
             0)
