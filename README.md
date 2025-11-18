@@ -6,6 +6,24 @@ A comprehensive Python toolkit for scraping, analyzing, and tracking top Hyperli
 
 This suite combines multi-source web scraping with portfolio analysis to identify and track the best-performing traders on Hyperliquid. It features an interactive menu system for easy operation and automatic result syncing to Dropbox.
 
+## 🆕 NEW: Unified Multi-Source Scraper
+
+The new **unified_scraper.py** combines all three data sources into a single workflow:
+- Scrapes from Hyperdash, Coinglass, and CoinMarketMan simultaneously
+- Automatically deduplicates and merges results into **big_file.csv**
+- Enriches wallets with comprehensive Hyperliquid API data
+- Ranks by performance with automated hyper scraper filtering
+- See **[UNIFIED_SCRAPER_GUIDE.md](UNIFIED_SCRAPER_GUIDE.md)** for complete documentation
+
+**Quick Start:**
+```bash
+# Scrape all sources and analyze
+python3 unified_scraper.py --scrape --analyze
+
+# Analyze existing data
+python3 unified_scraper.py --analyze
+```
+
 ## Features
 
 ### Multi-Source Scraping
@@ -245,6 +263,7 @@ head -20 portfolio_analysis_positions.csv
 
 ## Documentation
 
+- **[UNIFIED_SCRAPER_GUIDE.md](UNIFIED_SCRAPER_GUIDE.md)** - **NEW:** Complete unified scraper documentation
 - **[MENU_GUIDE.md](MENU_GUIDE.md)** - Interactive menu quick start guide
 - **[README_SCRIPTS.md](README_SCRIPTS.md)** - Detailed script documentation
 - **[CMM_MANUAL_SCRAPING_GUIDE.md](CMM_MANUAL_SCRAPING_GUIDE.md)** - CoinMarketMan manual scraping guide
@@ -262,6 +281,7 @@ Based on recent analysis of 150+ wallets:
 
 ```
 bothyperdash/
+├── unified_scraper.py                # NEW: All-in-one scraper & analyzer
 ├── script_scrap_wallet.py            # Multi-source wallet scraper
 ├── script_portfolio.py               # Portfolio analyzer
 ├── parse_cmm_detailed.py             # CMM detailed data extractor
@@ -271,13 +291,16 @@ bothyperdash/
 ├── README.md                         # This file
 ├── README_SCRIPTS.md                 # Detailed documentation
 ├── MENU_GUIDE.md                     # Menu usage guide
+├── UNIFIED_SCRAPER_GUIDE.md          # NEW: Unified scraper guide
 ├── CMM_MANUAL_SCRAPING_GUIDE.md      # CMM manual scraping guide
 ├── hyperliquid_scraper.tar.gz        # Packaged archive
 ├── scrapped_wallet_library.csv       # Scraped addresses (generated)
 ├── cmm_traders_detailed.csv          # CMM detailed data (generated)
 ├── portfolio_analysis.csv            # Full analysis (generated)
 ├── portfolio_analysis_filtered.csv   # Top traders (generated)
-└── portfolio_analysis_positions.csv  # Current positions (generated)
+├── portfolio_analysis_positions.csv  # Current positions (generated)
+├── big_file.csv                      # NEW: Unified output (generated)
+└── big_file_ranked.csv               # NEW: Ranked traders (generated)
 ```
 
 ## License
